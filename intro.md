@@ -1,11 +1,11 @@
-# Welcome to your Jupyter Book
+# Tentang Saya
 
-This is a small sample book to give you a feel for how book content is
-structured.
-It shows off a few of the major file types, as well as some sample content.
-It does not go in-depth into any particular topic - check out [the Jupyter Book documentation](https://jupyterbook.org) for more information.
+Nama: Muhammad Shafy Gunawan
 
-Check out the content pages bundled with this sample book to see more.
+NIM: 220411100096
 
-```{tableofcontents}
-```
+Kelas: Penambangan Data IF 4B
+
+Program Studi: Teknik Informatika
+
+Repositori ini berisi dokumentasi pembelajaran saya selama mengikuti mata kuliah Penambangan Data. Di dalam repositori ini, saya akan membagikan catatan, tugas, dan proyek yang saya kerjakan selama perkuliahan. Saya berharap dengan berbagi pengetahuan ini, saya dapat membantu teman-teman lain yang juga sedang belajar di bidang ini. Terima kasih telah mengunjungi repositori saya!
