@@ -56,7 +56,7 @@ Google Colab:
 import pandas as pd
 
 # Load dataset
-df = pd.read_csv('iris.csv')  # sesuaikan path jika perlu
+df = pd.read_csv('iris.csv')
 
 # Ambil hanya kolom numerik
 df_numeric = df.select_dtypes(include=['number'])
@@ -82,7 +82,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 
 # Load dataset
-df = pd.read_csv('iris.csv')  # sesuaikan path jika perlu
+df = pd.read_csv('iris.csv')
 
 # Scatter plot dengan warna berdasarkan species
 plt.figure()
@@ -117,7 +117,7 @@ Google Colab:
 import pandas as pd
 
 # Load dataset
-df = pd.read_csv('iris.csv')  # sesuaikan path jika perlu
+df = pd.read_csv('iris.csv')
 
 # Ambil hanya kolom numerik
 df_numeric = df.select_dtypes(include=['number'])
