@@ -48,10 +48,6 @@ $$d_{\text{Manhattan}}(x, y) = \sum_{i=1}^{n} |x_i - y_i|$$
 
 $$d_{\text{Euclidean}}(x, y) = \sqrt{\sum_{i=1}^{n} (x_i - y_i)^2}$$
 
-3. **Jarak Supremum / Minkowski pangkat $h$**: Generalisasi dari kedua metrik di atas melalui parameter $h$. Ketika $h = 1$ menghasilkan jarak Manhattan, ketika $h = 2$ menghasilkan jarak Euclidean, dan ketika $h \to \infty$ menghasilkan jarak Chebyshev (nilai selisih dimensi terbesar).
-
-$$d_{\text{Minkowski}}(x, y) = \left(\sum_{i=1}^{n} |x_i - y_i|^h\right)^{1/h}$$
-
 ## Pemahaman Data Iris
 
 Dataset Iris adalah salah satu dataset klasik dalam _machine learning_ yang terdiri dari 150 observasi bunga iris dengan empat fitur pengukuran morfologi: panjang dan lebar sepal serta panjang dan lebar petal. Setiap observasi diklasifikasikan ke dalam salah satu dari tiga spesies iris, yaitu _Iris setosa_, _Iris versicolor_, dan _Iris virginica_.
@@ -99,6 +95,16 @@ import pandas as pd
 
 df = pd.read_csv('iris.csv')
 
+# Tentukan tipe data level dataset untuk setiap kolom
+# (bukan tipe teknis Python, melainkan kategori analitik)
+dataset_types = {
+    'sepal_length': 'Numerik (kontinu)',
+    'sepal_width' : 'Numerik (kontinu)',
+    'petal_length': 'Numerik (kontinu)',
+    'petal_width' : 'Numerik (kontinu)',
+    'species'     : 'Kategorikal (nominal)'
+}
+
 # Informasi struktur dataset
 print("=== Dimensi Dataset ===")
 print(f"Jumlah baris   : {df.shape[0]}")
@@ -107,7 +113,7 @@ print(f"Jumlah kolom   : {df.shape[1]}")
 print("\n=== Tipe Data dan Missing Values ===")
 info = pd.DataFrame({
     'Kolom'        : df.columns,
-    'Tipe Data'    : df.dtypes.values,
+    'Tipe Dataset' : [dataset_types[col] for col in df.columns],
     'Non-Null'     : df.notnull().sum().values,
     'Missing'      : df.isnull().sum().values,
     '% Missing'    : (df.isnull().sum().values / len(df) * 100).round(2)
@@ -118,9 +124,9 @@ print("\n=== Lima Baris Pertama ===")
 print(df.head())
 ```
 
-![Informasi Umum dan Struktur Data](./img/Screenshot_2026-03-04_05-35-05.png)
+![Informasi Umum dan Struktur Data](./img/Screenshot_2026-03-04_06-17-18.png)
 
-Dataset terdiri dari 150 baris dan 5 kolom: empat fitur numerik bertipe `float64` dan satu kolom kelas bertipe `object`. Tidak ada satu pun nilai yang hilang, sehingga seluruh data dapat langsung digunakan tanpa perlu penanganan _missing values_.
+Dataset terdiri dari 150 baris dan 5 kolom. Keempat fitur pengukuran (`sepal_length`, `sepal_width`, `petal_length`, `petal_width`) bertipe **numerik kontinu** karena nilainya berupa hasil pengukuran morfologi yang dapat mengambil nilai pecahan dalam rentang tertentu. Kolom `species` bertipe **kategorikal nominal** karena berisi label spesies tanpa urutan atau hierarki yang melekat. Tidak ada satu pun nilai yang hilang, sehingga seluruh data dapat langsung digunakan tanpa perlu penanganan _missing values_.
 
 ### Informasi Kelas (Class Distribution)
 
@@ -298,21 +304,21 @@ Korelasi tertinggi terdapat antara `petal_length` dan `petal_width` (0.963), dii
 
 Berdasarkan seluruh proses eksplorasi yang telah dilakukan, dataset Iris berada dalam kondisi yang sangat baik dan siap digunakan untuk pemodelan. Berikut adalah ringkasan temuan:
 
-| Aspek            | Kondisi                                                     |
-| :--------------- | :---------------------------------------------------------- |
-| Kelengkapan data | ✅ Tidak ada _missing values_ pada semua fitur              |
-| Duplikasi data   | ✅ Tidak ditemukan baris duplikat                           |
-| Distribusi kelas | ✅ Seimbang sempurna — 50 observasi per kelas               |
-| Outlier          | ⚠️ 4 outlier pada `sepal_width` (2,67%) — dapat ditoleransi |
-| Tipe data        | ✅ Konsisten — numerik `float64` dan kelas `object`         |
-| Rentang nilai    | ✅ Wajar dan tidak ada nilai negatif yang tidak logis       |
-| Korelasi fitur   | ✅ Petal berhubungan kuat; sepal_width bersifat independen  |
+| Aspek            | Kondisi                                                                     |
+| :--------------- | :-------------------------------------------------------------------------- |
+| Kelengkapan data | ✅ Tidak ada _missing values_ pada semua fitur                              |
+| Duplikasi data   | ✅ Tidak ditemukan baris duplikat                                           |
+| Distribusi kelas | ✅ Seimbang sempurna — 50 observasi per kelas                               |
+| Outlier          | ⚠️ 4 outlier pada `sepal_width` (2,67%) — dapat ditoleransi                 |
+| Tipe data        | ✅ Konsisten — 4 fitur **numerik kontinu**, 1 fitur **kategorikal nominal** |
+| Rentang nilai    | ✅ Wajar dan tidak ada nilai negatif yang tidak logis                       |
+| Korelasi fitur   | ✅ Petal berhubungan kuat; sepal_width bersifat independen                  |
 
 Data Iris memenuhi semua kriteria kualitas data yang baik. Tidak diperlukan imputasi _missing values_ maupun penanganan ketidakseimbangan kelas. Satu-satunya perhatian kecil adalah empat outlier pada `sepal_width`, namun jumlahnya jauh di bawah ambang batas 10 persen sehingga tidak perlu dieliminasi.
 
 ## Perhitungan Jarak Antar Data Iris
 
-Untuk memahami seberapa "dekat" atau "jauh" dua observasi dalam dataset Iris, dilakukan perhitungan jarak menggunakan tiga metrik: Manhattan, Euclidean, dan Minkowski (Supremum pangkat $h$). Perhitungan dilakukan pada empat fitur numerik dari dua sampel data yang dipilih sebagai contoh perbandingan.
+Untuk memahami seberapa "dekat" atau "jauh" dua observasi dalam dataset Iris, dilakukan perhitungan jarak menggunakan dua metrik: **Manhattan** dan **Euclidean**. Perhitungan dilakukan pada empat fitur numerik dari dua sampel data yang dipilih sebagai contoh perbandingan, yaitu baris ke-0 (_Iris setosa_) dan baris ke-50 (_Iris versicolor_).
 
 ```python
 import pandas as pd
@@ -325,62 +331,37 @@ df_numeric = df.select_dtypes(include=['number'])
 x = df_numeric.iloc[0].values   # [5.1, 3.5, 1.4, 0.2]
 y = df_numeric.iloc[50].values  # [7.0, 3.2, 4.7, 1.4]
 
-print(f"Titik x (baris 0)  : {x}")
-print(f"Titik y (baris 50) : {y}")
-print(f"Selisih |x - y|    : {np.abs(x - y)}\n")
+print(f"Titik x (baris 0  — setosa)     : {x}")
+print(f"Titik y (baris 50 — versicolor) : {y}")
+print(f"Selisih |x - y|                 : {np.abs(x - y)}")
+print()
 
 # --- Jarak Manhattan ---
 manhattan = np.sum(np.abs(x - y))
-print(f"Jarak Manhattan   : {manhattan:.4f}")
+print(f"Jarak Manhattan  = {' + '.join([str(round(v, 1)) for v in np.abs(x - y)])}")
+print(f"               = {manhattan:.4f}")
+
+print()
 
 # --- Jarak Euclidean ---
-euclidean = np.sqrt(np.sum((x - y) ** 2))
-print(f"Jarak Euclidean   : {euclidean:.4f}")
-
-# --- Jarak Minkowski (Supremum, pangkat h) ---
-for h in [1, 2, 3, 5, 10]:
-    minkowski = np.sum(np.abs(x - y) ** h) ** (1 / h)
-    label = "Manhattan " if h == 1 else ("Euclidean " if h == 2 else f"Minkowski ")
-    print(f"Jarak Minkowski h={h:2d} ({label}): {minkowski:.4f}")
+squared = (x - y) ** 2
+euclidean = np.sqrt(np.sum(squared))
+print(f"Jarak Euclidean  = sqrt({' + '.join([str(round(v, 2)) for v in squared])})")
+print(f"               = {euclidean:.4f}")
 ```
 
-![Perhitungan Jarak Antar Data Iris](./img/Screenshot_2026-03-04_05-46-13.png)
+![Perhitungan Jarak Antar Data Iris](./img/Screenshot_2026-03-04_06-18-06.png)
 
-Visualisasi perbandingan nilai jarak untuk berbagai nilai $h$ memberikan gambaran bagaimana sensitivitas metrik berubah seiring meningkatnya pangkat:
+Dari hasil di atas diperoleh:
 
-```python
-import pandas as pd
-import numpy as np
-import matplotlib.pyplot as plt
+- **Jarak Manhattan** = $|1.9| + |0.3| + |3.3| + |1.2| = 6.7000$ — menjumlahkan seluruh selisih absolut per dimensi.
+- **Jarak Euclidean** = $\sqrt{1.9^2 + 0.3^2 + 3.3^2 + 1.2^2} = 3.9293$ — mengukur jarak lurus di ruang empat dimensi.
 
-df = pd.read_csv('iris.csv')
-df_numeric = df.select_dtypes(include=['number'])
-
-x = df_numeric.iloc[0].values
-y = df_numeric.iloc[50].values
-
-h_values = list(range(1, 21))
-distances = [np.sum(np.abs(x - y) ** h) ** (1 / h) for h in h_values]
-
-plt.figure(figsize=(8, 4))
-plt.plot(h_values, distances, marker='o', color='steelblue', linewidth=2)
-plt.axhline(y=np.max(np.abs(x - y)), color='red', linestyle='--',
-            label=f'Batas Chebyshev = {np.max(np.abs(x - y)):.2f}')
-plt.xlabel('Nilai h (pangkat Minkowski)')
-plt.ylabel('Jarak')
-plt.title('Konvergensi Jarak Minkowski terhadap Chebyshev')
-plt.legend()
-plt.tight_layout()
-plt.show()
-```
-
-Seiring nilai $h$ meningkat, jarak Minkowski konvergen menuju **jarak Chebyshev** ($h \to \infty$), yaitu selisih dimensi terbesar antara dua titik:
-
-$$d_{\text{Chebyshev}}(x, y) = \max_i |x_i - y_i| = \max(1.9,\ 0.3,\ 3.3,\ 1.2) = 3.3$$
+Jarak Manhattan selalu lebih besar atau sama dengan jarak Euclidean karena tidak "memotong diagonal" antar dimensi, melainkan menjumlahkan setiap selisih secara terpisah.
 
 ### Perbandingan Jarak Seluruh Pasangan Kelas
 
-Untuk memahami pemisahan antar kelas secara kuantitatif, dihitung rata-rata jarak Euclidean antara semua pasangan observasi dari kelas yang berbeda:
+Untuk memahami pemisahan antar kelas secara kuantitatif, dihitung rata-rata jarak Manhattan dan Euclidean antara semua pasangan observasi dari kelas yang berbeda:
 
 ```python
 import pandas as pd
@@ -389,7 +370,6 @@ from itertools import combinations
 
 df = pd.read_csv('iris.csv')
 df_numeric = df.select_dtypes(include=['number'])
-df['species'] = df['species']
 
 species_list = df['species'].unique()
 results = []
@@ -398,19 +378,22 @@ for sp1, sp2 in combinations(species_list, 2):
     data1 = df_numeric[df['species'] == sp1].values
     data2 = df_numeric[df['species'] == sp2].values
 
-    # Hitung semua jarak Euclidean antar pasang titik lintas kelas
-    dists = [np.sqrt(np.sum((a - b) ** 2)) for a in data1 for b in data2]
+    # Hitung semua pasang jarak lintas kelas
+    manhattan_dists = [np.sum(np.abs(a - b)) for a in data1 for b in data2]
+    euclidean_dists = [np.sqrt(np.sum((a - b) ** 2)) for a in data1 for b in data2]
+
     results.append({
-        'Pasangan Kelas'    : f"{sp1} vs {sp2}",
-        'Rata-rata Euclidean': round(np.mean(dists), 4),
-        'Min Euclidean'     : round(np.min(dists), 4),
-        'Maks Euclidean'    : round(np.max(dists), 4)
+        'Pasangan Kelas'      : f"{sp1} vs {sp2}",
+        'Rata-rata Manhattan' : round(np.mean(manhattan_dists), 4),
+        'Min Manhattan'       : round(np.min(manhattan_dists), 4),
+        'Rata-rata Euclidean' : round(np.mean(euclidean_dists), 4),
+        'Min Euclidean'       : round(np.min(euclidean_dists), 4),
     })
 
 result_df = pd.DataFrame(results)
 print(result_df.to_string(index=False))
 ```
 
-![Perhitungan Jarak Antar Data Iris](./img/Screenshot_2026-03-04_05-48-48.png)
+![Perhitungan Jarak Antar Data Iris](./img/Screenshot_2026-03-04_06-18-47.png)
 
-Hasil ini menunjukkan bahwa _Iris setosa_ paling mudah dipisahkan dari dua spesies lainnya karena memiliki rata-rata jarak Euclidean yang lebih besar. Sebaliknya, _versicolor_ dan _virginica_ memiliki jarak rata-rata paling kecil (~1.99), yang berarti kedua spesies ini lebih sulit dibedakan secara morfologis — sesuai dengan visualisasi scatter plot yang telah diamati sebelumnya.
+Kedua metrik menghasilkan kesimpulan yang konsisten: _Iris setosa_ paling mudah dipisahkan dari dua spesies lainnya karena memiliki nilai jarak rata-rata yang paling besar. Sebaliknya, _versicolor_ dan _virginica_ memiliki jarak rata-rata paling kecil (Manhattan ~2.71, Euclidean ~1.99), yang berarti kedua spesies ini paling mirip secara morfologis dan paling sulit dibedakan — sesuai dengan visualisasi scatter plot yang telah diamati sebelumnya.
