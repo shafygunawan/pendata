@@ -397,3 +397,199 @@ print(result_df.to_string(index=False))
 ![Perhitungan Jarak Antar Data Iris](./img/Screenshot_2026-03-04_06-18-47.png)
 
 Kedua metrik menghasilkan kesimpulan yang konsisten: _Iris setosa_ paling mudah dipisahkan dari dua spesies lainnya karena memiliki nilai jarak rata-rata yang paling besar. Sebaliknya, _versicolor_ dan _virginica_ memiliki jarak rata-rata paling kecil (Manhattan ~2.71, Euclidean ~1.99), yang berarti kedua spesies ini paling mirip secara morfologis dan paling sulit dibedakan — sesuai dengan visualisasi scatter plot yang telah diamati sebelumnya.
+
+## Pengukuran Jarak untuk Data Bertipe Campuran — Netflix Movies and TV Shows
+
+Dataset Iris hanya memiliki fitur numerik, sehingga perhitungan Manhattan dan Euclidean dapat langsung diterapkan. Namun pada dataset nyata, lazimnya fitur-fitur yang ada memiliki **tipe data yang berbeda-beda** dalam satu tabel — ada yang numerik, ordinal, nominal, hingga biner asimetris. Menghitung jarak secara langsung pada tipe data campuran tidak dapat dilakukan begitu saja, karena setiap tipe memerlukan cara pengukuran selisih yang berbeda.
+
+Dataset **Netflix Movies and TV Shows** yang diambil dari Kaggle menjadi contoh kasus yang tepat untuk mengilustrasikan hal ini. Dataset ini mencatat konten yang tersedia di platform Netflix beserta metadata seperti jenis konten, negara asal, tahun rilis, rating, durasi, dan genre.
+
+### Identifikasi Tipe Data Setiap Fitur
+
+Sebelum menghitung jarak, setiap fitur harus diidentifikasi tipe datanya secara analitik — bukan berdasarkan tipe teknis Python, melainkan berdasarkan **makna dan sifat nilai** yang dikandungnya.
+
+| Fitur          | Tipe Dataset            | Alasan                                                                                   |
+| :------------- | :---------------------- | :--------------------------------------------------------------------------------------- |
+| `show_id`      | Identifier              | Kode unik per konten, tidak memiliki makna analitik; dikeluarkan dari perhitungan        |
+| `type`         | Biner simetris          | Hanya dua nilai: "Movie" dan "TV Show"; kedua nilai setara, tidak ada yang lebih penting |
+| `title`        | Nominal (teks bebas)    | Label unik per konten; terlalu granular untuk perhitungan jarak                          |
+| `director`     | Nominal                 | Nama sutradara; banyak _missing values_; dikecualikan                                    |
+| `cast`         | Nominal (multi-nilai)   | Daftar nama aktor; terlalu kompleks untuk satu perbandingan sederhana                    |
+| `country`      | Nominal                 | Nama negara tanpa urutan atau bobot tertentu                                             |
+| `date_added`   | Numerik (ordinal date)  | Direpresentasikan sebagai tahun ditambahkan; dapat dibandingkan secara urutan            |
+| `release_year` | Numerik (kontinu)       | Tahun rilis dalam angka bulat; dapat dihitung selisihnya secara langsung                 |
+| `rating`       | Ordinal                 | Tingkat pembatasan usia yang memiliki urutan dari ringan ke ketat                        |
+| `duration`     | Numerik (setelah parse) | Film: menit; TV Show: jumlah musim; perlu diparsing sebelum digunakan                    |
+| `listed_in`    | Biner asimetris         | Kehadiran genre tertentu (1 = ada, 0 = tidak); nilai "0-0" tidak informatif              |
+| `description`  | Teks bebas              | Narasi panjang; dikecualikan dari perhitungan jarak numerik                              |
+
+Fitur yang dipilih untuk perhitungan jarak: `type`, `country`, `release_year`, `rating`, dan `listed_in` (genre tertentu).
+
+### Pendekatan: Jarak Manhattan Adaptif per Tipe Data (Gower)
+
+Ketika fitur-fitur memiliki tipe berbeda, pendekatan yang digunakan adalah **Jarak Gower** — sebuah generalisasi Manhattan yang menormalisasi kontribusi setiap fitur ke dalam skala 0–1 sesuai tipe datanya, lalu merata-ratakannya.
+
+$$d_{\text{Gower}}(x, y) = \frac{\sum_{i=1}^{p} w_i \cdot d_i(x, y)}{\sum_{i=1}^{p} w_i}$$
+
+Cara menghitung $d_i$ untuk setiap tipe:
+
+| Tipe Data           | Formula $d_i$                                                                                | Rentang   |
+| :------------------ | :------------------------------------------------------------------------------------------- | :-------- |
+| **Numerik**         | $d_i = \dfrac{\|x_i - y_i\|}{R_i}$ di mana $R_i$ = maks − min keseluruhan data               | $[0, 1]$  |
+| **Nominal**         | $d_i = \begin{cases} 0 & \text{jika } x_i = y_i \\ 1 & \text{jika berbeda} \end{cases}$      | $\{0,1\}$ |
+| **Ordinal**         | $d_i = \dfrac{\|r_{x_i} - r_{y_i}\|}{n_i - 1}$ di mana $r$ = peringkat, $n_i$ = jumlah level | $[0, 1]$  |
+| **Biner simetris**  | $d_i = \begin{cases} 0 & x_i = y_i \\ 1 & x_i \neq y_i \end{cases}$                          | $\{0,1\}$ |
+| **Biner asimetris** | $d_i = 0$ jika $(x_i,y_i)=(1,1)$; $d_i = 1$ jika berbeda; diabaikan ($w_i=0$) jika $(0,0)$   | $\{0,1\}$ |
+
+Bobot $w_i = 0$ apabila salah satu nilai hilang, atau untuk biner asimetris ketika keduanya bernilai 0 (tidak menginformasikan apa-apa).
+
+### Pemetaan Ordinal untuk Fitur `rating`
+
+Fitur `rating` dalam dataset Netflix memuat peringkat dari dua sistem berbeda — film dan acara TV. Untuk memungkinkan perbandingan antar keduanya, dibuat **skala ordinal terpadu** dari tingkat kebebasan konten paling rendah ke paling tinggi:
+
+| Peringkat | Level Ordinal | Keterangan                     |
+| :-------- | :-----------: | :----------------------------- |
+| G         |       1       | Semua usia (film)              |
+| TV-Y      |       1       | Anak-anak sangat muda          |
+| TV-Y7     |       2       | Anak 7 tahun ke atas           |
+| TV-G      |       3       | Umum, semua usia (TV)          |
+| PG        |       3       | Bimbingan orang tua disarankan |
+| PG-13     |       4       | Orang tua sangat berhati-hati  |
+| TV-PG     |       4       | Bimbingan orang tua (TV)       |
+| TV-14     |       5       | Remaja 14 tahun ke atas        |
+| R         |       6       | Terbatas — bawah 17 perlu wali |
+| NC-17     |       7       | 17 tahun ke atas               |
+| TV-MA     |       7       | Dewasa — konten eksplisit      |
+
+### Implementasi Python
+
+```python
+import pandas as pd
+import numpy as np
+
+df = pd.read_csv('netflix_titles.csv')
+
+# === Pemetaan ordinal rating ===
+rating_order = {
+    'G': 1, 'TV-Y': 1,
+    'TV-Y7': 2,
+    'TV-G': 3, 'PG': 3,
+    'PG-13': 4, 'TV-PG': 4,
+    'TV-14': 5,
+    'R': 6,
+    'NC-17': 7, 'TV-MA': 7
+}
+df['rating_rank'] = df['rating'].map(rating_order)
+
+# === Parsing durasi menjadi angka ===
+def parse_duration(row):
+    if pd.isna(row['duration']):
+        return np.nan
+    if 'min' in str(row['duration']):
+        return int(row['duration'].replace(' min', ''))
+    elif 'Season' in str(row['duration']):
+        return int(row['duration'].split()[0])
+    return np.nan
+
+df['duration_val'] = df.apply(parse_duration, axis=1)
+
+# === Encoding biner asimetris: genre "Documentaries" ===
+df['is_documentary'] = df['listed_in'].apply(
+    lambda x: 1 if isinstance(x, str) and 'Documentar' in x else 0
+)
+
+# === Encoding biner simetris: type ===
+df['type_bin'] = df['type'].map({'Movie': 0, 'TV Show': 1})
+
+# === Range untuk normalisasi numerik ===
+release_year_range = df['release_year'].max() - df['release_year'].min()
+rating_n_levels = max(rating_order.values()) - min(rating_order.values())  # 7-1 = 6
+
+# -------------------------------------------------------
+# Ambil dua sampel: s1 (Movie) dan s2 (TV Show)
+# -------------------------------------------------------
+s1 = df[df['show_id'] == 's1'].iloc[0]  # Dick Johnson Is Dead
+s2 = df[df['show_id'] == 's2'].iloc[0]  # Blood & Water
+
+print("=== Perbandingan Dua Observasi ===")
+print(f"{'Fitur':<20} {'s1 (Movie)':<25} {'s2 (TV Show)':<25}")
+print("-" * 70)
+print(f"{'type':<20} {s1['type']:<25} {s2['type']:<25}")
+print(f"{'country':<20} {str(s1['country']):<25} {str(s2['country']):<25}")
+print(f"{'release_year':<20} {s1['release_year']:<25} {s2['release_year']:<25}")
+print(f"{'rating':<20} {str(s1['rating']):<25} {str(s2['rating']):<25}")
+print(f"{'is_documentary':<20} {s1['is_documentary']:<25} {s2['is_documentary']:<25}")
+print()
+
+# -------------------------------------------------------
+# Hitung jarak per komponen
+# -------------------------------------------------------
+# 1. type (biner simetris)
+d_type = 0 if s1['type_bin'] == s2['type_bin'] else 1
+
+# 2. country (nominal)
+d_country = 0 if s1['country'] == s2['country'] else 1
+
+# 3. release_year (numerik — dinormalisasi)
+d_year = abs(s1['release_year'] - s2['release_year']) / release_year_range
+
+# 4. rating (ordinal — dinormalisasi)
+r1 = s1['rating_rank']
+r2 = s2['rating_rank']
+if pd.isna(r1) or pd.isna(r2):
+    d_rating, w_rating = 0, 0
+else:
+    d_rating = abs(r1 - r2) / rating_n_levels
+    w_rating = 1
+
+# 5. is_documentary (biner asimetris)
+a1, a2 = s1['is_documentary'], s2['is_documentary']
+if a1 == 0 and a2 == 0:
+    d_documentary, w_documentary = 0, 0   # keduanya 0 → diabaikan
+else:
+    d_documentary = 0 if a1 == a2 else 1
+    w_documentary = 1
+
+# -------------------------------------------------------
+# Gower distance
+# -------------------------------------------------------
+components = [
+    ('type (biner simetris)',   d_type,        1          ),
+    ('country (nominal)',       d_country,     1          ),
+    ('release_year (numerik)', d_year,        1          ),
+    ('rating (ordinal)',        d_rating,      w_rating   ),
+    ('documentary (bin.asim)', d_documentary, w_documentary),
+]
+
+print("=== Kontribusi Jarak per Fitur ===")
+print(f"{'Fitur':<30} {'d_i':>8} {'w_i':>5}")
+print("-" * 45)
+for name, d, w in components:
+    print(f"{name:<30} {d:>8.4f} {w:>5}")
+
+total_d = sum(d * w for _, d, w in components)
+total_w = sum(w for _, _, w in components)
+gower = total_d / total_w if total_w > 0 else np.nan
+
+print("-" * 45)
+print(f"{'Jumlah':<30} {total_d:>8.4f} {total_w:>5}")
+print(f"\nJarak Gower (s1 vs s2) = {total_d:.4f} / {total_w} = {gower:.4f}")
+```
+
+![Implementasi Python](./img/Screenshot_2026-03-04_06-29-35.png)
+
+### Interpretasi Hasil
+
+Jarak Gower antara **Dick Johnson Is Dead** (s1) dan **Blood & Water** (s2) adalah **0.7021** dari maksimum 1.0. Nilai ini menunjukkan bahwa kedua konten cukup berbeda satu sama lain. Berikut rincian kontribusi tiap fitur:
+
+| Fitur                         | Nilai s1      | Nilai s2      | $d_i$  | Interpretasi                           |
+| :---------------------------- | :------------ | :------------ | :----: | :------------------------------------- |
+| `type` (biner simetris)       | Movie         | TV Show       | 1.0000 | Berbeda jenis konten sepenuhnya        |
+| `country` (nominal)           | United States | South Africa  | 1.0000 | Negara asal berbeda                    |
+| `release_year` (numerik)      | 2020          | 2021          | 0.0104 | Selisih 1 tahun dari rentang ~96 tahun |
+| `rating` (ordinal)            | PG-13 (lvl 4) | TV-MA (lvl 7) | 0.5000 | Selisih 3 level dari total 6 level     |
+| `listed_in` (biner asimetris) | Documentar→ 1 | Tidak ada → 0 | 1.0000 | s1 bertipe dokumenter, s2 tidak        |
+
+Fitur `release_year` memberikan kontribusi paling kecil karena perbedaan 1 tahun sangat kecil relatif terhadap rentang dataset. Sebaliknya, perbedaan `type`, `country`, dan genre menyumbang penuh (1.0) karena keduanya benar-benar berbeda.
+
+Nilai `(0, 0)` pada biner asimetris — misalkan kedua konten sama-sama bukan dokumenter — **tidak dihitung** karena tidak ada informasi yang dapat dibandingkan: "sama-sama tidak punya" tidak bermakna kedekatan.
