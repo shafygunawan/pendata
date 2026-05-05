@@ -11,3 +11,4 @@ chapters:
     - file: deployment
     - file: other
     - file: uts
+    - file: tugas-naive-bayes
