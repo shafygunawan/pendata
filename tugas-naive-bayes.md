@@ -99,7 +99,7 @@ knio.output_tables[0] = knio.Table.from_pandas(df[output_cols])
 # Mengirim hasil kembali ke KNIME untuk evaluasi di Scorer node
 ```
 
-- Melakukan encoding data kategorikal → numerik
+- Melakukan encoding data kategorikal -> numerik
 - Melatih model Categorical Naive Bayes
 - Melakukan prediksi pada data yang sama (atau bisa dimodifikasi untuk data test)
 - Mengembalikan hasil prediksi ke KNIME dalam format tabel
