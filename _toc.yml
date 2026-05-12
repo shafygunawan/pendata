@@ -12,3 +12,4 @@ chapters:
     - file: other
     - file: uts
     - file: tugas-naive-bayes
+    - file: tugas-decision-tree
