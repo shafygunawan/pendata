@@ -127,3 +127,39 @@ Node ini digunakan untuk menerapkan model pohon keputusan yang telah dilatih pad
 Node ini digunakan untuk mengevaluasi kinerja model dengan membandingkan prediksi yang dihasilkan oleh Decision Tree Predictor dengan label sebenarnya (decision) dari data pengujian. Hasil evaluasi berupa metrik seperti akurasi, precision, recall, dan F1-score.
 
 ![Scorer Node](./img/Screenshot_2026-05-12_16-35-15.png)
+
+## Contoh Perhitungan Manual dengan Excel
+
+Pada contoh ini saya mencoba untuk mencari akar pohon keputusan dengan menggunakan metode Gain Ratio secara manual menggunakan Excel. Berikut adalah langkah-langkahnya:
+
+1. Saya mencari entropy class decision terlebih dahulu dengan menggunakan rumus seperti pada screenshot berikut:
+
+    ![Entropy Class Decision](./img/Screenshot_2026-05-12_16-43-17.png)
+
+2. Setelah mendapatkan nilai entropy class decision, saya mencari nilai entropy untuk setiap atribut (buying price, maintenance cost, number of doors, safety) dengan menggunakan rumus yang sama.
+3. Setelah mendapatkan nilai entropy untuk setiap atribut, saya menghitung Information Gain dengan menggunakan rumus:
+
+    ![Information Gain](./img/Screenshot_2026-05-12_16-47-00.png)
+
+4. Setelah mendapatkan nilai Information Gain, saya menghitung Split Information untuk setiap atribut dengan menggunakan rumus:
+
+    ![Split Information](./img/Screenshot_2026-05-12_16-48-50.png)
+
+5. Setelah itu saya menghitung Gain Split dengan menggunakan rumus:
+
+    ![Gain Split](./img/Screenshot_2026-05-12_16-49-45.png)
+
+6. Terakhir, saya menghitung Gain Ratio dengan menggunakan rumus:
+
+    ![Gain Ratio](./img/Screenshot_2026-05-12_16-50-03.png)
+
+7. Pada langkah sebelumnya saya mencontohkannya pada atribut buying price, saya juga melakukan perhitungan yang sama untuk atribut lainnya (maintenance cost, number of doors, safety) untuk mendapatkan nilai Gain Ratio masing-masing atribut.
+8. Mencari atribut dengan nilai Gain Ratio tertinggi untuk menentukan node akar pohon keputusan.
+
+    ![Gain Ratio Comparison](./img/Screenshot_2026-05-12_16-53-04.png)
+
+Dari perhitungan manual ini, saya dapat menentukan atribut mana yang memiliki Gain Ratio tertinggi dan akan dipilih sebagai node akar dalam pohon keputusan.
+
+## Kesimpulan
+
+Dari implementasi dan perhitungan manual yang dilakukan, dapat disimpulkan bahwa pohon keputusan adalah metode yang efektif untuk klasifikasi data. Dengan menggunakan Gain Ratio sebagai kriteria pemilihan atribut, kita dapat membangun model yang lebih akurat dan terhindar dari bias terhadap atribut dengan banyak nilai unik. Implementasi di KNIME juga memudahkan proses pelatihan dan evaluasi model, sehingga kita dapat dengan mudah mengukur kinerja model yang telah dibuat.
