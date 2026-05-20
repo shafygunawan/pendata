@@ -14,3 +14,5 @@ chapters:
     - file: tugas-naive-bayes
     - file: tugas-decision-tree
     - file: tugas-random-forest
+    - file: tugas-random-forest
+    - file: tugas-regresi-linier
