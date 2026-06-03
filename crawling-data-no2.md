@@ -72,7 +72,7 @@ s5p_no2_aoi = s5p_no2_daily.aggregate_spatial(reducer="mean", geometries=aoi)
 
 Kode tersebut membutuhkan koordinat area yang akan dijadikan sumber data NO2. Untuk menentukan koordinatnya, buka situs <https://geojson.io>. Di sana, pilih area yang diinginkan dengan menggambar bentuk pada wilayah yang akan diambil datanya.
 
-![Teks alternatif](./img/image-11.png)
+![Area seleksi di GeoJSON.io menunjukkan batas wilayah Probolinggo](./img/image-11.png)
 
 Pada panel sebelah kanan tersedia JSON berisi koordinat wilayah yang
 dipilih. Salin data tersebut, lalu sesuaikan dengan kode sebelumnya pada
@@ -112,7 +112,7 @@ Abaikan ketika ada N/A.
 
 Selama proses pengambilan data, aktivitas akan tercatat di halaman <https://editor.openeo.org/?server=https%3A%2F%2Fopeneo.dataspace.copernicus.eu%2Fopeneo%2F1.2>. Di sana akan terlihat nama dataset dan status pengambilan data.
 
-![Teks alternatif](./img/image-10.png)
+![Status pengambilan data di OpenEO Editor menunjukkan job yang completed](./img/image-10.png)
 
 ## 2. Praproses Data
 
@@ -128,15 +128,15 @@ import netCDF4
 file_path = "NO2Probolinggo.nc"
 ds = netCDF4.Dataset(file_path)
 
-# Lihat seluruh variabel yang tersedia
+# Tampilkan variabel yang tersedia
 print("📦 Variabel dalam file:")
 print(ds.variables.keys())
 # dict_keys(['t', 'x', 'y', 'crs', 'NO2'])
 
-# Ambil NO2
+# Ekstrak data NO2
 no2 = ds.variables["NO2"][:]
 
-# Ambil Time
+# Ekstrak data waktu
 time = ds.variables["t"][:]
 
 # Konversi waktu ke format tanggal jika punya atribut 'units'
@@ -144,23 +144,23 @@ try:
     time_units = ds.variables["t"].units
     dates = netCDF4.num2date(time, units=time_units)
 except Exception:
-    dates = time  # fallback kalau tidak ada units
+    dates = time  # fallback jika tidak ada units
 
 # Tampilkan struktur data NO2
 print(type(no2))
-# type <class 'numpy.ma.core.MaskedArray'>
+# Tipe: numpy.ma.core.MaskedArray
 
 print(len(no2))
-# banyaknya data record NO2 725
+# Jumlah waktu: 1098
 
 print(len(no2[0]))
-# panjang data perbaris 9
+# Dimensi y: 8
 
 print(len(no2[0][0]))
-# panjang perdata 8
+# Dimensi x: 6
 
 print(no2[0][0][0])
-# 3.7701793e-05
+# Contoh nilai: 1.5991e-05
 ```
 
 Melalui kode di atas, kita bisa melihat bentuk data pada kolom NO2.
@@ -195,14 +195,13 @@ Berikutnya, missing value pada data NO2 akan ditangani terlebih dahulu.
 import numpy as np
 import pandas as pd
 
-# Interpolasi Linear
+# Siapkan array untuk NO2 yang sudah diisi
 no2_filled = np.zeros_like(no2)
-# Untuk jaga-jaga jika terdapat '--' tidak berubah menjadi 0
 no2_filled = no2_filled.filled(0)
 
-# loop tiap grid (y,x)
-for i in range(no2.shape[1]):     # 9 baris
-    for j in range(no2.shape[2]): # 8 kolom
+# Loop setiap grid spatial (y, x)
+for i in range(no2.shape[1]):
+    for j in range(no2.shape[2]):
         series = pd.Series(no2[:, i, j])
         no2_filled[:, i, j] = series.interpolate(method='linear', limit_direction='both').to_numpy()
 ```
@@ -234,7 +233,7 @@ df = pd.DataFrame({
     "NO2": new_no2
 })
 
-# Simpan ke CSV
+# Simpan DataFrame ke file CSV
 df.to_csv("NO2_Probolinggo_timeseries.csv", index=False)
 ```
 
@@ -250,15 +249,15 @@ import numpy as np
 
 df = pd.read_csv("NO2_Probolinggo_timeseries.csv")
 
-# Pastikan kolom 'date' bertipe datetime
+# Konversi kolom 'date' ke tipe datetime
 df['date'] = pd.to_datetime(df['date'])
 
-# Buat rentang tanggal lengkap
+# Buat rangkaian tanggal lengkap
 start_date = "2023-06-01"
 end_date = "2026-06-01"
 full_range = pd.date_range(start=start_date, end=end_date, freq='D')
 
-# Cek tanggal yang hilang
+# Identifikasi tanggal yang hilang
 missing_dates = full_range.difference(df['date'])
 
 print(f"Jumlah hari missing: {len(missing_dates)}")
@@ -281,31 +280,23 @@ digunakan adalah sebagai berikut:
 ```python
 import pandas as pd
 
-# Load the DataFrame. The 'date' column will be read as a column.
+# Baca file CSV dan set 'date' sebagai index
 df = pd.read_csv("NO2_Probolinggo_timeseries.csv")
-
-# Ensure 'date' column is datetime and then set it as the index
 df['date'] = pd.to_datetime(df['date'])
-df = df.set_index('date')
+df = df.set_index('date').sort_index()
 
-# Sort by the index (which is 'date')
-df = df.sort_index()
-
-# Buat rentang tanggal lengkap
+# Buat rangkaian tanggal lengkap
 full_range = pd.date_range(start="2023-06-01", end="2026-06-01", freq='D')
 
-# Reindex agar tanggal yang hilang muncul sebagai NaN
+# Reindex untuk menampilkan tanggal yang hilang sebagai NaN
 df = df.reindex(full_range)
-df.index.name = 'date' # Ensure the index name is 'date' after reindex
+df.index.name = 'date'
 
-# Interpolasi linear berdasarkan indeks waktu
+# Interpolasi linear berdasarkan waktu
 df['NO2'] = df['NO2'].interpolate(method='time')
 
-# (Opsional) jika masih ada NaN di bagian awal/akhir bisa gunakan forward/backward fill
+# Forward-fill dan backward-fill untuk NaN di awal/akhir
 df['NO2'] = df['NO2'].fillna(method='bfill').fillna(method='ffill')
-
-# Simpan kembali ke CSV
-df.to_csv("no2_timeseries_interpolated.csv")
 ```
 
 Setelah pengecekan dilakukan, tidak ditemukan lagi missing value pada data harian.
@@ -331,19 +322,17 @@ df = pd.read_csv("no2_timeseries_interpolated.csv")
 
 df['date'] = pd.to_datetime(df['date'])
 
-# Hitung IQR
+# Hitung quartile dan IQR
 Q1 = df['NO2'].quantile(0.25)
 Q3 = df['NO2'].quantile(0.75)
 IQR = Q3 - Q1
 
+# Tentukan batas outlier
 lower_bound = Q1 - 1.5 * IQR
 upper_bound = Q3 + 1.5 * IQR
 
-# Filter outlier
+# Identifikasi outlier
 outliers_iqr = df[(df['NO2'] < lower_bound) | (df['NO2'] > upper_bound)]
-
-print("Jumlah Outlier (IQR):", len(outliers_iqr))
-print(outliers_iqr[['date', 'NO2']].head())
 ```
 
 ```
@@ -359,15 +348,15 @@ Jumlah Outlier (IQR): 32
 Untuk memvisualisasikan outlier, gunakan kode berikut:
 
 ```python
-# === Visualisasi ===
+# Buat visualisasi deteksi outlier
 plt.figure(figsize=(15,5))
 plt.plot(df['date'], df['NO2'], label="NO2", linewidth=1)
 
-# Titik Outlier
+# Plot titik outlier
 plt.scatter(outliers_iqr['date'], outliers_iqr['NO2'],
             color='red', marker='o', label="Outliers")
 
-# Garis batas atas & bawah
+# Garis threshold
 plt.axhline(upper_bound, color='orange', linestyle='dashed', label="Upper Bound (IQR)")
 plt.axhline(lower_bound, color='blue', linestyle='dashed', label="Lower Bound (IQR)")
 
@@ -384,33 +373,27 @@ plt.xticks(
 plt.show()
 ```
 
-![Teks alternatif](./img/Untitled2.png)
+![Visualisasi deteksi outlier menggunakan metode IQR dengan garis threshold upper dan lower bound](./img/Untitled2.png)
 
 Setelah outlier teridentifikasi, data tersebut akan dihapus terlebih dahulu. Karena data yang digunakan merupakan deret waktu, nilai outlier yang dihapus akan diisi ulang menggunakan interpolasi linear.
 
 ```python
-# Tandai outlier menjadi NaN
+# Mask outlier sebagai NaN
 df['NO2_cleaned'] = df['NO2'].mask((df['NO2'] < lower_bound) | (df['NO2'] > upper_bound))
+print("Jumlah outlier:", df['NO2_cleaned'].isna().sum())
 
-print("Jumlah nilai yang dinyatakan sebagai outlier:", df['NO2_cleaned'].isna().sum())
-
-# Interpolasi linear untuk mengisi kembali nilai outlier
+# Interpolasi untuk mengisi outlier
 df['NO2_filled'] = df['NO2_cleaned'].interpolate(method='linear')
-
-# Jika masih tersisa NaN di ujung data, isi dengan forward/backward fill
 df['NO2_filled'] = df['NO2_filled'].bfill().ffill()
-# df['NO2_filled'] = df['NO2_filled'].fillna(method='bfill').fillna(method='ffill')
-
-print("Jumlah missing setelah interpolasi:", df['NO2_filled'].isna().sum())
+print("Missing value setelah interpolasi:", df['NO2_filled'].isna().sum())
 ```
 
 Visualisasi data setelah outlier dihapus dan diisi kembali dengan interpolasi linear:
 
 ```python
 plt.figure(figsize=(15,5))
-# Plot data hasil interpolasi
+# Plot data setelah interpolasi
 plt.plot(df['date'], df['NO2_filled'], label="NO2 (Interpolated)", linewidth=1)
-# Tampilkan hanya tanggal awal dan akhir di sumbu X
 plt.xticks(
     ticks=[df['date'].iloc[0], df['date'].iloc[-1]],
     labels=[df['date'].iloc[0].strftime('%Y-%m-%d'),
@@ -424,7 +407,7 @@ plt.tight_layout()
 plt.show()
 ```
 
-![Teks alternatif](./img/Untitled.png)
+![Plot deret waktu NO2 setelah penghapusan outlier dan interpolasi linear](./img/Untitled.png)
 
 ## 3. Pemodelan dengan KNN Regression
 
@@ -444,27 +427,24 @@ import pandas as pd
 def create_supervised(data, n_lag=4):
     df_supervised = pd.DataFrame()
 
-    # Membuat fitur t-4 sampai t-1
+    # Buat fitur lag
     for i in range(n_lag, 0, -1):
         df_supervised[f'NO2(t-{i})'] = data.shift(i)
 
-    # Label hari H
+    # Tambahkan target
     df_supervised['NO2(t)'] = data
 
-    # Hapus baris yang masih mengandung NaN akibat shift
+    # Hapus baris dengan NaN
     df_supervised.dropna(inplace=True)
 
     return df_supervised
 
-# contoh penggunaan
-# Use 'NO2_filled' as it contains the cleaned and interpolated data
+# Buat data supervised dengan 30 lag
 supervised_df30 = create_supervised(df['NO2_filled'], n_lag=30)
 
-# Ambil semua lag dan kolom target
+# Hitung korelasi setiap lag terhadap target
 lag_cols = supervised_df30.drop(columns="NO2(t)").columns
 correlations = supervised_df30[lag_cols].corrwith(supervised_df30['NO2(t)'])
-
-# Tampilkan nilai korelasi
 print(correlations)
 ```
 
@@ -506,12 +486,12 @@ Nilai korelasi berada pada rentang -1 sampai 1. Dalam kasus ini, fitur
 yang paling baik adalah yang memiliki nilai korelasi di atas 0.5, yaitu
 fitur t-1 sampai t-4.
 
-### c. Transformasi Data
+### b. Transformasi Data
 
 Selanjutnya, data akan diubah dari bentuk sebelumnya menjadi data
-dengan 4 hari ke belakang yang menghasilkan 5 kolom, yaitu
-t-4, t-3, t-2, t-1, dan t sebagai label. Hal ini dilakukan karena hasil
-uji korelasi menunjukkan bahwa empat fitur tersebut memiliki hubungan
+dengan 2 hari ke belakang yang menghasilkan 3 kolom, yaitu
+t-2, t-1, dan t sebagai label. Hal ini dilakukan karena hasil
+uji korelasi menunjukkan bahwa dua fitur tersebut memiliki hubungan
 terbaik, yaitu lebih dari 0.5. Selain itu, dibuat juga data dengan 10
 hari sebelumnya untuk membandingkan apakah penambahan jumlah lag benar-
 benar memperbaiki model.
@@ -582,7 +562,7 @@ print(supervised_df10.shape)
 (1087, 11)
 ```
 
-### d. Pemodelan dan Evaluasi {#d-modeling-dan-evaluation}
+### c. Pemodelan dan Evaluasi {#d-modeling-dan-evaluation}
 
 Setelah dua bentuk data tersebut disiapkan, model akan dilatih menggunakan KNN Regression.
 
@@ -599,23 +579,23 @@ def MAPE(y_true, y_pred):
     return np.mean(np.abs((y_true[nonzero] - y_pred[nonzero]) / y_true[nonzero])) * 100
 
 def train_knn(df_supervised, model_name=""):
-    # Pisahkan fitur & label
+    # Pisahkan fitur dan label
     X = df_supervised.drop(columns=['NO2(t)']).values
     y = df_supervised['NO2(t)'].values
 
-    # Split data 80/20
+    # Split train-test (80-20)
     X_train, X_test, y_train, y_test = train_test_split(
         X, y, test_size=0.2, shuffle=False
     )
 
-    # Model KNN
+    # Inisialisasi dan latih model KNN
     knn = KNeighborsRegressor(n_neighbors=5)
     knn.fit(X_train, y_train)
 
-    # Prediksi
+    # Prediksi pada test set
     y_pred = knn.predict(X_test)
 
-    # Evaluasi
+    # Hitung metrik evaluasi
     mse = mean_squared_error(y_test, y_pred)
     rmse = np.sqrt(mse)
     r2 = r2_score(y_test, y_pred)
@@ -630,11 +610,11 @@ def train_knn(df_supervised, model_name=""):
     return knn, y_test, y_pred
 
 
-# Train model untuk 4 hari sebelumnya
-knn_4, y_test_4, y_pred_4 = train_knn(supervised_df, "KNN - 4 Hari Sebelumnya")
+# Latih KNN dengan 2 lag (contoh dari data)
+knn_2, y_test_2, y_pred_2 = train_knn(supervised_df, "KNN - 2 Lag")
 
-# Train model untuk 10 hari sebelumnya
-knn_10, y_test_10, y_pred_10 = train_knn(supervised_df10, "KNN - 10 Hari Sebelumnya")
+# Latih KNN dengan 10 lag
+knn_10, y_test_10, y_pred_10 = train_knn(supervised_df10, "KNN - 10 Lag")
 ```
 
 ```
@@ -656,7 +636,7 @@ sebelumnya tidak selalu membuat model menjadi lebih baik. Untuk
 membuktikannya, data 30 hari sebelumnya juga akan diuji.
 
 ```python
-knn_30, y_test_30, y_pred_30 = train_knn(supervised_df30, "KNN - 30 Hari Sebelumnya")
+knn_30, y_test_30, y_pred_30 = train_knn(supervised_df30, "KNN - 30 Lag")
 ```
 
 ```
