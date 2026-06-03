@@ -597,9 +597,9 @@ def train_knn(df_supervised, model_name=""):
     mape = MAPE(y_test, y_pred)
 
     print(f"\n=== {model_name} ===")
-    print(f"Train Size: {len(X_train)} — Test Size: {len(X_test)}")
+    print(f"Train Size: {len(X_train)} - Test Size: {len(X_test)}")
     print(f"RMSE: {rmse:.6f}")
-    print(f"R² Score: {r2:.4f}")
+    print(f"R2 Score: {r2:.4f}")
     print(f"MAPE: {mape:.4f}%")
 
     return knn, y_test, y_pred
@@ -614,15 +614,15 @@ knn_10, y_test_10, y_pred_10 = train_knn(supervised_df10, "KNN - 10 Lag")
 
 ```
 === KNN - 2 Lag ===
-Train Size: 874 — Test Size: 219
+Train Size: 874 - Test Size: 219
 RMSE: 0.054354
-R² Score: 0.4804
+R2 Score: 0.4804
 MAPE: 42.8681%
 
 === KNN - 10 Lag ===
-Train Size: 869 — Test Size: 218
+Train Size: 869 - Test Size: 218
 RMSE: 0.059691
-R² Score: 0.3703
+R2 Score: 0.3703
 MAPE: 58.7099%
 ```
 
@@ -636,10 +636,10 @@ knn_30, y_test_30, y_pred_30 = train_knn(supervised_df30, "KNN - 30 Lag")
 
 ```
 === KNN - 30 Lag ===
-Train Size: 853 — Test Size: 214
+Train Size: 853 - Test Size: 214
 RMSE: 0.000005
-R² Score: -0.0265
+R2 Score: -0.0265
 MAPE: 12.6548%
 ```
 
-Hasil evaluasi model KNN Regression menunjukkan bahwa peningkatan jumlah fitur historis (lag) tidak serta merta meningkatkan performa prediksi. Pada model dengan 2 lag, nilai RMSE paling kecil (0.054354) dan R² masih positif (0.4804) sehingga model mampu menjelaskan sekitar 48% variabilitas data target. Namun, ketika jumlah lag ditambah menjadi 10 dan 30, performa model justru menurun yang ditunjukkan oleh meningkatnya nilai RMSE dan MAPE, serta penurunan nilai R² hingga bernilai negatif pada 30 lag. Nilai MAPE yang tinggi pada model 2 lag (42.87%) dan 10 lag (58.71%) menunjukkan bahwa terdapat deviasi cukup besar antara nilai prediksi dan nilai aktual. Secara keseluruhan, model KNN dengan 2 lag memberikan performa terbaik di antara ketiga varian, namun akurasi prediksi masih dapat ditingkatkan. Penambahan fitur historis justru menyebabkan peningkatan kompleksitas dan overfitting yang menurunkan kemampuan generalisasi model. Oleh karena itu, diperlukan eksplorasi model alternatif atau optimalisasi strategi preprocessing untuk memperoleh hasil prediksi yang lebih akurat.
+Hasil evaluasi model KNN Regression menunjukkan bahwa peningkatan jumlah fitur historis (lag) tidak serta merta meningkatkan performa prediksi. Pada model dengan 2 lag, nilai RMSE paling kecil (0.054354) dan R2 masih positif (0.4804) sehingga model mampu menjelaskan sekitar 48% variabilitas data target. Namun, ketika jumlah lag ditambah menjadi 10 dan 30, performa model justru menurun yang ditunjukkan oleh meningkatnya nilai RMSE dan MAPE, serta penurunan nilai R2 hingga bernilai negatif pada 30 lag. Nilai MAPE yang tinggi pada model 2 lag (42.87%) dan 10 lag (58.71%) menunjukkan bahwa terdapat deviasi cukup besar antara nilai prediksi dan nilai aktual. Secara keseluruhan, model KNN dengan 2 lag memberikan performa terbaik di antara ketiga varian, namun akurasi prediksi masih dapat ditingkatkan. Penambahan fitur historis justru menyebabkan peningkatan kompleksitas dan overfitting yang menurunkan kemampuan generalisasi model. Oleh karena itu, diperlukan eksplorasi model alternatif atau optimalisasi strategi preprocessing untuk memperoleh hasil prediksi yang lebih akurat.
