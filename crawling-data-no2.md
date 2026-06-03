@@ -72,7 +72,7 @@ s5p_no2_aoi = s5p_no2_daily.aggregate_spatial(reducer="mean", geometries=aoi)
 
 Kode tersebut membutuhkan koordinat area yang akan dijadikan sumber data NO2. Untuk menentukan koordinatnya, buka situs <https://geojson.io>. Di sana, pilih area yang diinginkan dengan menggambar bentuk pada wilayah yang akan diambil datanya.
 
-![Teks alternatif](img/Screenshot%202025-10-23%20110952.png)
+![Teks alternatif](./img/image-11.png)
 
 Pada panel sebelah kanan tersedia JSON berisi koordinat wilayah yang
 dipilih. Salin data tersebut, lalu sesuaikan dengan kode sebelumnya pada
@@ -112,11 +112,15 @@ Abaikan ketika ada N/A.
 
 Selama proses pengambilan data, aktivitas akan tercatat di halaman <https://editor.openeo.org/?server=https%3A%2F%2Fopeneo.dataspace.copernicus.eu%2Fopeneo%2F1.2>. Di sana akan terlihat nama dataset dan status pengambilan data.
 
-![Teks alternatif](img/Screenshot%202025-10-24%20121430.png)
+![Teks alternatif](./img/image-10.png)
 
 ## 2. Praproses Data
 
 Setelah data berhasil diambil, file dapat diunduh melalui halaman <https://editor.openeo.org/?server=https%3A%2F%2Fopeneo.dataspace.copernicus.eu%2Fopeneo%2F1.2>. File yang diperoleh berbentuk .nc. Dari file tersebut, kita hanya memerlukan kolom date dan NO2 dengan bantuan kode berikut:
+
+```bash
+pip install netCDF4
+```
 
 ```python
 import netCDF4
@@ -226,8 +230,8 @@ ke dalam format CSV.
 
 ```python
 df = pd.DataFrame({
-    "date": dates,
-    "NO2": no2_values
+    "date": new_dates,
+    "NO2": new_no2
 })
 
 # Simpan ke CSV
@@ -250,8 +254,8 @@ df = pd.read_csv("NO2_Probolinggo_timeseries.csv")
 df['date'] = pd.to_datetime(df['date'])
 
 # Buat rentang tanggal lengkap
-start_date = "2023-10-01"
-end_date = "2025-09-30"
+start_date = "2023-06-01"
+end_date = "2026-06-01"
 full_range = pd.date_range(start=start_date, end=end_date, freq='D')
 
 # Cek tanggal yang hilang
@@ -277,16 +281,22 @@ digunakan adalah sebagai berikut:
 ```python
 import pandas as pd
 
-# Pastikan datetime dan sorting
+# Load the DataFrame. The 'date' column will be read as a column.
+df = pd.read_csv("NO2_Probolinggo_timeseries.csv")
+
+# Ensure 'date' column is datetime and then set it as the index
 df['date'] = pd.to_datetime(df['date'])
-df = df.sort_values('date')
+df = df.set_index('date')
+
+# Sort by the index (which is 'date')
+df = df.sort_index()
 
 # Buat rentang tanggal lengkap
-full_range = pd.date_range(start="2023-10-01", end="2025-09-30", freq='D')
+full_range = pd.date_range(start="2023-06-01", end="2026-06-01", freq='D')
 
 # Reindex agar tanggal yang hilang muncul sebagai NaN
-df = df.set_index('date').reindex(full_range)
-df.index.name = 'date'
+df = df.reindex(full_range)
+df.index.name = 'date' # Ensure the index name is 'date' after reindex
 
 # Interpolasi linear berdasarkan indeks waktu
 df['NO2'] = df['NO2'].interpolate(method='time')
@@ -374,7 +384,7 @@ plt.xticks(
 plt.show()
 ```
 
-![Teks alternatif](img/Figure_1.png)
+![Teks alternatif](./img/Untitled2.png)
 
 Setelah outlier teridentifikasi, data tersebut akan dihapus terlebih dahulu. Karena data yang digunakan merupakan deret waktu, nilai outlier yang dihapus akan diisi ulang menggunakan interpolasi linear.
 
@@ -414,7 +424,7 @@ plt.tight_layout()
 plt.show()
 ```
 
-![Teks alternatif](img/Figure_2.png)
+![Teks alternatif](./img/Untitled.png)
 
 ## 3. Pemodelan dengan KNN Regression
 
@@ -447,7 +457,8 @@ def create_supervised(data, n_lag=4):
     return df_supervised
 
 # contoh penggunaan
-supervised_df30 = create_supervised(df['NO2_scaled'], n_lag=30)
+# Use 'NO2_filled' as it contains the cleaned and interpolated data
+supervised_df30 = create_supervised(df['NO2_filled'], n_lag=30)
 
 # Ambil semua lag dan kolom target
 lag_cols = supervised_df30.drop(columns="NO2(t)").columns
@@ -458,36 +469,37 @@ print(correlations)
 ```
 
 ```
-NO2(t-30)    0.442365
-NO2(t-29)    0.454480
-NO2(t-28)    0.475354
-NO2(t-27)    0.411464
-NO2(t-26)    0.381559
-NO2(t-25)    0.368824
-NO2(t-24)    0.353114
-NO2(t-23)    0.364938
-NO2(t-22)    0.372437
-NO2(t-21)    0.380476
-NO2(t-20)    0.350856
-NO2(t-19)    0.342492
-NO2(t-18)    0.312603
-NO2(t-17)    0.283336
-NO2(t-16)    0.288346
-NO2(t-15)    0.292171
-NO2(t-14)    0.311974
-NO2(t-13)    0.327142
-NO2(t-12)    0.341764
-NO2(t-11)    0.374090
-NO2(t-10)    0.397377
-NO2(t-9)     0.419258
-NO2(t-8)     0.455909
-NO2(t-7)     0.462456
-NO2(t-6)     0.460161
-NO2(t-5)     0.491515
-NO2(t-4)     0.523820
-NO2(t-3)     0.593839
-NO2(t-2)     0.675955
-NO2(t-1)     0.796441
+NO2(t-30)    0.211984
+NO2(t-29)    0.211496
+NO2(t-28)    0.220829
+NO2(t-27)    0.225748
+NO2(t-26)    0.227388
+NO2(t-25)    0.212842
+NO2(t-24)    0.221842
+NO2(t-23)    0.199859
+NO2(t-22)    0.220313
+NO2(t-21)    0.250760
+NO2(t-20)    0.228258
+NO2(t-19)    0.211761
+NO2(t-18)    0.188526
+NO2(t-17)    0.202442
+NO2(t-16)    0.222127
+NO2(t-15)    0.209191
+NO2(t-14)    0.204095
+NO2(t-13)    0.174071
+NO2(t-12)    0.177627
+NO2(t-11)    0.209214
+NO2(t-10)    0.258804
+NO2(t-9)     0.257744
+NO2(t-8)     0.306587
+NO2(t-7)     0.359005
+NO2(t-6)     0.390902
+NO2(t-5)     0.420111
+NO2(t-4)     0.444095
+NO2(t-3)     0.503943
+NO2(t-2)     0.584967
+NO2(t-1)     0.735705
+dtype: float64
 ```
 
 Nilai korelasi berada pada rentang -1 sampai 1. Dalam kasus ini, fitur
@@ -505,28 +517,28 @@ hari sebelumnya untuk membandingkan apakah penambahan jumlah lag benar-
 benar memperbaiki model.
 
 ```python
-supervised_df = create_supervised(df['NO2_scaled'], n_lag=4)
+supervised_df = create_supervised(df['NO2_scaled'], n_lag=2)
 
 print(supervised_df)
 print(supervised_df.shape)
 ```
 
 ```
-output/terminal
-     NO2(t-4)  NO2(t-3)  NO2(t-2)  NO2(t-1)    NO2(t)
-4    0.238203  0.192840  0.196854  0.149560  0.154247
-5    0.192840  0.196854  0.149560  0.154247  0.185625
-6    0.196854  0.149560  0.154247  0.185625  0.152010
-7    0.149560  0.154247  0.185625  0.152010  0.149143
-8    0.154247  0.185625  0.152010  0.149143  0.159907
-..        ...       ...       ...       ...       ...
-726  0.123092  0.325742  0.372653  0.145997  0.094458
-727  0.325742  0.372653  0.145997  0.094458  0.089599
-728  0.372653  0.145997  0.094458  0.089599  0.000000
-729  0.145997  0.094458  0.089599  0.000000  0.014405
-730  0.094458  0.089599  0.000000  0.014405  0.014405
-[727 rows x 5 columns]
-(727, 5)
+      NO2(t-2)  NO2(t-1)    NO2(t)
+2     0.608901  0.396232  0.183563
+3     0.396232  0.183563  0.215945
+4     0.183563  0.215945  0.279305
+5     0.215945  0.279305  0.321600
+6     0.279305  0.321600  0.365034
+...        ...       ...       ...
+1092  0.260330  0.218847  0.206466
+1093  0.218847  0.206466  0.182345
+1094  0.206466  0.182345  0.002686
+1095  0.182345  0.002686  0.090599
+1096  0.002686  0.090599  0.090599
+
+[1095 rows x 3 columns]
+(1095, 3)
 ```
 
 Untuk membuat data dengan 10 hari sebelumnya, cukup ubah parameter
@@ -540,20 +552,34 @@ print(supervised_df10.shape)
 ```
 
 ```
-     NO2(t-10)  NO2(t-9)  NO2(t-8)  NO2(t-7)  NO2(t-6)  NO2(t-5)  NO2(t-4)  NO2(t-3)  NO2(t-2)  NO2(t-1)    NO2(t)
-10    0.238203  0.192840  0.196854  0.149560  0.154247  0.185625  0.152010  0.149143  0.159907  0.242292  0.214105
-11    0.192840  0.196854  0.149560  0.154247  0.185625  0.152010  0.149143  0.159907  0.242292  0.214105  0.166780
-12    0.196854  0.149560  0.154247  0.185625  0.152010  0.149143  0.159907  0.242292  0.214105  0.166780  0.127252
-13    0.149560  0.154247  0.185625  0.152010  0.149143  0.159907  0.242292  0.214105  0.166780  0.127252  0.083753
-14    0.154247  0.185625  0.152010  0.149143  0.159907  0.242292  0.214105  0.166780  0.127252  0.083753  0.091532
-..         ...       ...       ...       ...       ...       ...       ...       ...       ...       ...       ...
-726   0.161874  0.128849  0.095824  0.062799  0.038033  0.059606  0.123092  0.325742  0.372653  0.145997  0.094458
-727   0.128849  0.095824  0.062799  0.038033  0.059606  0.123092  0.325742  0.372653  0.145997  0.094458  0.089599
-728   0.095824  0.062799  0.038033  0.059606  0.123092  0.325742  0.372653  0.145997  0.094458  0.089599  0.000000
-729   0.062799  0.038033  0.059606  0.123092  0.325742  0.372653  0.145997  0.094458  0.089599  0.000000  0.014405
-730   0.038033  0.059606  0.123092  0.325742  0.372653  0.145997  0.094458  0.089599  0.000000  0.014405  0.014405
-[721 rows x 11 columns]
-(721, 11)
+      NO2(t-10)  NO2(t-9)  NO2(t-8)  NO2(t-7)  NO2(t-6)  NO2(t-5)  NO2(t-4)  \
+10     0.608901  0.396232  0.183563  0.215945  0.279305  0.321600  0.365034
+11     0.396232  0.183563  0.215945  0.279305  0.321600  0.365034  0.468387
+12     0.183563  0.215945  0.279305  0.321600  0.365034  0.468387  0.212618
+13     0.215945  0.279305  0.321600  0.365034  0.468387  0.212618  0.458426
+14     0.279305  0.321600  0.365034  0.468387  0.212618  0.458426  0.468700
+...         ...       ...       ...       ...       ...       ...       ...
+1092   0.161685  0.189094  0.124995  0.118956  0.221205  0.356047  0.320779
+1093   0.189094  0.124995  0.118956  0.221205  0.356047  0.320779  0.290554
+1094   0.124995  0.118956  0.221205  0.356047  0.320779  0.290554  0.260330
+1095   0.118956  0.221205  0.356047  0.320779  0.290554  0.260330  0.218847
+1096   0.221205  0.356047  0.320779  0.290554  0.260330  0.218847  0.206466
+
+      NO2(t-3)  NO2(t-2)  NO2(t-1)    NO2(t)
+10    0.468387  0.212618  0.458426  0.468700
+11    0.212618  0.458426  0.468700  0.581147
+12    0.458426  0.468700  0.581147  0.567561
+13    0.468700  0.581147  0.567561  0.716322
+14    0.581147  0.567561  0.716322  0.863053
+...        ...       ...       ...       ...
+1092  0.290554  0.260330  0.218847  0.206466
+1093  0.260330  0.218847  0.206466  0.182345
+1094  0.218847  0.206466  0.182345  0.002686
+1095  0.206466  0.182345  0.002686  0.090599
+1096  0.182345  0.002686  0.090599  0.090599
+
+[1087 rows x 11 columns]
+(1087, 11)
 ```
 
 ### d. Pemodelan dan Evaluasi {#d-modeling-dan-evaluation}
@@ -612,18 +638,17 @@ knn_10, y_test_10, y_pred_10 = train_knn(supervised_df10, "KNN - 10 Hari Sebelum
 ```
 
 ```
-output/terminal
 === KNN - 4 Hari Sebelumnya ===
-Train Size: 581 — Test Size: 146
-RMSE: 0.065436
-R² Score: 0.1395
-MAPE: 61.0780%
+Train Size: 874 — Test Size: 219
+RMSE: 0.054354
+R² Score: 0.4804
+MAPE: 42.8681%
 
 === KNN - 10 Hari Sebelumnya ===
-Train Size: 576 — Test Size: 145
-RMSE: 0.067567
-R² Score: 0.0886
-MAPE: 64.6611%
+Train Size: 869 — Test Size: 218
+RMSE: 0.059691
+R² Score: 0.3703
+MAPE: 58.7099%
 ```
 
 Berdasarkan hasil evaluasi di atas, terlihat bahwa penambahan hari
@@ -636,13 +661,11 @@ knn_30, y_test_30, y_pred_30 = train_knn(supervised_df30, "KNN - 30 Hari Sebelum
 
 ```
 === KNN - 30 Hari Sebelumnya ===
-Train Size: 560 — Test Size: 141
-RMSE: 0.074803
-R² Score: -0.0875
-MAPE: 72.2295%
+Train Size: 853 — Test Size: 214
+RMSE: 0.000005
+R² Score: -0.0265
+MAPE: 12.6548%
 ```
-
-![Teks alternatif](img/Screenshot%202025-10-27%20115826.png)
 
 Hasil evaluasi model KNN Regression menunjukkan bahwa peningkatan jumlah
 fitur historis (lag) tidak serta merta meningkatkan performa prediksi.
