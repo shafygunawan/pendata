@@ -31,7 +31,7 @@ from sklearn.inspection import PartialDependenceDisplay
 
 ### 2. Memuat dan Menyiapkan Data
 
-Dataset yang digunakan adalah data beban listrik `vic_electricity`. Berbeda dengan data mentah per jam, pada panduan ini data di-resample menjadi frekuensi harian ('D'), di mana nilai `Demand` dijumlahkan dan `Temperature` dirata-rata.
+Dataset yang digunakan adalah data beban listrik `vic_electricity`. Data di-resample menjadi frekuensi harian ('D'), di mana nilai `Demand` dijumlahkan dan `Temperature` dirata-rata.
 
 ```python
 # Memuat dataset contoh permintaan listrik Victoria
@@ -50,7 +50,7 @@ print(f"Ukuran Data Testing  : {data_test.shape}")
 
 ### 3. Inisialisasi dan Pelatihan Model Forecaster
 
-Menggunakan `ForecasterRecursive` dengan algoritma regresi `LGBMRegressor`. Model dikonfigurasi dengan lags = 7 (menggunakan data 7 hari sebelumnya sebagai input) dan menyertakan `Temperature` sebagai variabel eksogen.
+Menggunakan `ForecasterRecursive` berbasis `LGBMRegressor` dengan konfigurasi parameter lags = 7 dan variabel eksogen `Temperature`.
 
 ```python
 # Inisialisasi forecaster autoregresif rekursif
@@ -93,25 +93,24 @@ shap_values = explainer(X_train)
 
 # 5a. Global Interpretability (Summary Plot)
 shap.summary_plot(shap_values, X_train)
-
-# 5b. Local Interpretability (Waterfall Plot untuk sampel pertama)
-shap.plots.waterfall(shap_values[0])
 ```
 
 ### 6. Partial Dependence Plot (PDP)
 
-Visualisasi ini digunakan untuk melihat hubungan murni antara fitur spesifik (misalnya pengaruh naik-turunnya suhu udara) terhadap prediksi permintaan listrik secara terisolasi.
+Menampilkan grafik dependensi parsial menggunakan `PartialDependenceDisplay` dari scikit-learn.
 
 ```python
-# Menampilkan Partial Dependence Plot untuk fitur 'Temperature' dan 'lag_1'
-fig, ax = plt.subplots(figsize=(10, 5))
-PartialDependenceDisplay.from_estimator(
-    estimator=forecaster.regressor,
-    X=X_train,
-    features=['Temperature', 'lag_1'],
-    ax=ax
+fig, ax = plt.subplots(figsize=(9, 4))
+ax.set_title("Decision Tree")
+pd.plots = PartialDependenceDisplay.from_estimator(
+    estimator = forecaster.regressor,
+    X         = X_train,
+    features  = ["Temperature", "lag_1"],
+    kind      = 'both',
+    ax        = ax,
 )
-plt.show()
+ax.set_title("Partial Dependence Plot")
+fig.tight_layout();
 ```
 
 ---
@@ -156,5 +155,4 @@ Alur proses analisis yang dijalankan di dalam dokumen notebook tersebut meliputi
 3. Mengekstrak Feature Importance Global: Menggunakan fungsi bawaan `.get_feature_importances()` untuk mengukur kontribusi dasar tiap fitur. Hasilnya menunjukkan variabel eksogen `Temperature` memiliki nilai kepentingan tertinggi, disusul oleh fitur `lag_1`.
 4. Menghitung SHAP Values: Mengubah data runtun waktu menjadi matriks tabular reguler lewat `create_train_X_y()`, lalu menghitung kontribusi nilai SHAP menggunakan `TreeExplainer`. Di tahap ini dilakukan dua visualisasi:
     - Global Interpretability (Summary Plot): Melihat seberapa besar dampak positif/negatif dari nilai tinggi/rendahnya suatu fitur terhadap hasil akhir prediksi.
-    - Local Interpretability (Waterfall Plot): Mengisolasi dan membedah satu baris data prediksi tertentu untuk melihat kontribusi detail mengapa model menghasilkan angka prediksi tersebut.
 5. Partial Dependence Plot (PDP): Menampilkan grafik interaksi independen antara fitur (`Temperature` dan `lag_1`) terhadap nilai prediksi target guna memetakan hubungan non-linear yang dipelajari oleh model.
