@@ -87,12 +87,15 @@ X_train, y_train = forecaster.create_train_X_y(
                        exog = data_train['Temperature']
                    )
 
-# Menghitung SHAP values menggunakan TreeExplainer (karena berbasis LightGBM)
+# Inisialisasi SHAP JS
+shap.initjs()
+
+# Menghitung SHAP values menggunakan TreeExplainer
 explainer = shap.TreeExplainer(forecaster.regressor)
-shap_values = explainer(X_train)
+shap_values = explainer.shap_values(X_train)
 
 # 5a. Global Interpretability (Summary Plot)
-shap.summary_plot(shap_values, X_train)
+shap.summary_plot(shap_values, X_train, plot_type="bar")
 ```
 
 ### 6. Partial Dependence Plot (PDP)
@@ -102,7 +105,7 @@ Menampilkan grafik dependensi parsial menggunakan `PartialDependenceDisplay` dar
 ```python
 fig, ax = plt.subplots(figsize=(9, 4))
 ax.set_title("Decision Tree")
-pd.plots = PartialDependenceDisplay.from_estimator(
+display = PartialDependenceDisplay.from_estimator(
     estimator = forecaster.regressor,
     X         = X_train,
     features  = ["Temperature", "lag_1"],
@@ -156,3 +159,5 @@ Alur proses analisis yang dijalankan di dalam dokumen notebook tersebut meliputi
 4. Menghitung SHAP Values: Mengubah data runtun waktu menjadi matriks tabular reguler lewat `create_train_X_y()`, lalu menghitung kontribusi nilai SHAP menggunakan `TreeExplainer`. Di tahap ini dilakukan dua visualisasi:
     - Global Interpretability (Summary Plot): Melihat seberapa besar dampak positif/negatif dari nilai tinggi/rendahnya suatu fitur terhadap hasil akhir prediksi.
 5. Partial Dependence Plot (PDP): Menampilkan grafik interaksi independen antara fitur (`Temperature` dan `lag_1`) terhadap nilai prediksi target guna memetakan hubungan non-linear yang dipelajari oleh model.
+
+Kombinasi antara Feature Importance, SHAP, dan PDP ini memungkinkan kita untuk tidak hanya mengetahui variabel mana yang paling berpengaruh (seperti Temperature dan lag_1), tetapi juga memahami pola hubungan non-linear secara transparan. Contohnya, PDP dapat menunjukkan secara visual bahwa permintaan listrik akan melonjak drastis jika suhu berada di titik yang sangat ekstrem (sangat panas atau sangat dingin)."
