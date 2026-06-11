@@ -16,3 +16,4 @@ chapters:
     - file: tugas-random-forest
     - file: tugas-regresi-linier
     - file: crawling-data-no2
+    - tugas-reproduce-dan-analisis-skforecast-explainability
